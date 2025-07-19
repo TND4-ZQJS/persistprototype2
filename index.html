@@ -102,6 +102,7 @@
       color: #4e342e;
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -117,7 +118,8 @@
     <button onclick="calculate()">Calculate</button>
 
     <div id="result"></div>
-
+    <button onclick="downloadPDF()">📄 Download Report as PDF</button>
+    
     <details>
       <summary>📘 Show Guide</summary>
       <div class="guide">
@@ -246,6 +248,24 @@ Notes:
         ${unqualifiedList}
       `;
     }
+
+    function downloadPDF() {
+  const element = document.getElementById("result");
+  if (!element.innerText.trim()) {
+    alert("No result to download. Please run a calculation first.");
+    return;
+  }
+
+  const opt = {
+    margin:       0.5,
+    filename:     `persistency-report-${new Date().toISOString().slice(0,10)}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2 },
+    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+  };
+
+  html2pdf().set(opt).from(element).save();
+}
   </script>
 </body>
 </html>
