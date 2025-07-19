@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Persistency Calculator</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      background-color: #f5f5f7;
+      color: #1d1d1f;
+      text-align: center;
+      padding: 20px;
+      margin: 0;
+    }
+    .container {
+      max-width: 600px;
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin: auto;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+    textarea, select {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    button {
+      background: #0071e3;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 10px;
+      width: 100%;
+    }
+    button:hover {
+      background: #005bb5;
+    }
+    #result {
+      margin-top: 20px;
+      text-align: left;
+    }
+    .guide {
+      text-align: left;
+      margin-top: 20px;
+      border-radius: 8px;
+      background-color: #e5f1ff;
+      padding: 15px;
+      color: #1d1d1f;
+      border: 1px solid #0071e3;
+    }
+    summary {
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 10px;
+      background-color: #f0f4ff;
+      border-radius: 8px;
+    }
+    .guide-step {
+      margin: 10px 0;
+      line-height: 1.6;
+    }
+    details[open] summary {
+      background-color: #dceeff;
+      color: #0071e3;
+    }
+    .copy-button {
+      background-color: #0071e3;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 14px;
+      margin-top: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .copy-button:hover {
+      background-color: #005bb5;
+    }
+    @media (max-width: 480px) {
+      input, select, button {
+        width: 100%;
+      }
+    }
+    .suggestion-box {
+      background-color: #fff4e5;
+      border: 1px solid #ffa726;
+      padding: 16px;
+      border-radius: 10px;
+      margin-top: 30px;
+      text-align: left;
+      color: #4e342e;
+    }
+    #pdfTitle {
+      display: none;
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+  <div class="container" id="pdfContent">
+    <h2>Persistency Calculator</h2>
+
+    <label><b>Choose Persistency Type:</b></label><br>
+    <select id="persistencyType">
+      <option value="13">13-Month Persistency</option>
+      <option value="12">12-Month Persistency</option>
+    </select>
+
+    <details>
+      <summary>📘 Show Guide</summary>
+      <div class="guide">
+        <div class="guide-step"><strong>Step 1:</strong> Open the Manulife report (PDF or scanned text).</div>
+        <div class="guide-step"><strong>Step 2:</strong> Copy the whole table content (including headers).</div>
+        <div class="guide-step"><strong>Step 3:</strong> In ChatGPT, paste the content and type:</div>
+        <pre style="margin-top: 10px; white-space: pre-wrap;">
+<code id="hiddenPrompt">
+Please extract the following details from the copied Manulife report:
+
+Format:
+PolicyNo, Name, MonthsPaid, PsistANP, Status, PersistencyBlock, ReportDate
+
+Example:
+00999998, MOU TAK DENG, 10, 3,600.00, LC, 01-JUN-2023 to 31-MAY-2024, 11/07/2025
+
+Notes:
+- Only include actual policies (skip totals or headers)
+- PersistencyBlock = date range near top (e.g. "01-JUN-2023 to 31-MAY-2024")
+- ReportDate = top-left corner date (e.g. "11/07/2025")
+</code>
+</pre>
+        <button class="copy-button" onclick="copyPrompt()">📋 Copy Prompt</button>
+        <div class="guide-step"><strong>Step 4:</strong> Copy the cleaned result and paste it into the calculator below.</div>
+      </div>
+    </details>
+
+    <textarea id="dataInput" rows="10" placeholder="Paste policy data here..."></textarea>
+    <button onclick="calculate()">Calculate</button>
+    <div id="pdfTitle">Persistency Calculator Report</div>
+    <div id="result"></div>
+    <button onclick="downloadPDF()">📄 Download Report as PDF</button>
+  </div>
+
+  <script>
+    function copyPrompt() {
+      const code = document.getElementById("hiddenPrompt").innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        const btn = document.querySelector(".copy-button");
+        btn.textContent = "✅ Copied!";
+        setTimeout(() => {
+          btn.textContent = "📋 Copy Prompt";
+        }, 2000);
+      }).catch(() => {
+        alert("❌ Copy failed. Please try again.");
+      });
+    }
+
+    function calculate() {
+      const raw = document.getElementById("dataInput").value.trim();
+      const lines = raw.split("\n");
+      const threshold = parseInt(document.getElementById("persistencyType").value);
+
+      let totalANP = 0;
+      let persistedANP = 0;
+      let saveable = [];
+      let unqualified = [];
+
+      for (let line of lines) {
+        const [policyNo, name, monthsPaidStr, anpStr, status, block, reportDate] = line.split(",").map(s => s.trim());
+        const monthsPaid = parseInt(monthsPaidStr);
+        const anp = parseFloat(anpStr.replace(/,/g, ''));
+
+        if (isNaN(anp) || anp <= 0) continue;
+        totalANP += anp;
+
+        if (monthsPaid >= threshold) {
+          persistedANP += anp;
+        } else {
+          saveable.push({ policyNo, name, monthsPaid, anp, status });
+          unqualified.push({ policyNo, name, monthsPaid, anp, status });
+        }
+      }
+
+      const persistency = totalANP === 0 ? 0 : (persistedANP / totalANP) * 100;
+      const roundedPersistency = Math.round(persistency * 10) / 10;
+      const targetANP = totalANP * 0.85;
+      const shortfall = targetANP - persistedANP;
+
+      const statusLabels = {
+        "IP": "IP (inforce)",
+        "LC": "LC (lapsed)",
+        "LA": "LA (lapsed)",
+        "TC": "TC (surrendered)"
+      };
+
+      let suggestion = "";
+
+      if (shortfall > 0) {
+        const statusPriority = { "IP": 1, "LA": 2, "LC": 2 };
+
+        saveable.sort((a, b) => {
+          const prioA = statusPriority[a.status] || 99;
+          const prioB = statusPriority[b.status] || 99;
+
+          if (prioA !== prioB) return prioA - prioB;
+          if (b.monthsPaid !== a.monthsPaid) return b.monthsPaid - a.monthsPaid;
+          return b.anp - a.anp;
+        });
+
+        let recovering = [];
+        let added = 0;
+
+        for (let p of saveable) {
+          if (added >= shortfall) break;
+          added += p.anp;
+          recovering.push(p);
+        }
+
+        suggestion = `<div class="suggestion-box"><p>❌ Persistency is below 85%. To reach it, you need an additional <b>RM ${shortfall.toLocaleString(undefined, { minimumFractionDigits: 2 })}</b>. 💡Suggested policies to recover:</p><ul>`;
+        for (let p of recovering) {
+          suggestion += `<li><b>${p.policyNo}</b> – ${p.name} – RM ${p.anp.toLocaleString(undefined, { minimumFractionDigits: 2 })} – ${p.monthsPaid} months paid – Status: ${statusLabels[p.status] || p.status}</li>`;
+        }
+        suggestion += "</ul></div>";
+      }
+
+      let unqualifiedList = "";
+      if (unqualified.length > 0) {
+        unqualifiedList = "<h4>📋 Unqualified Policies (for reference):</h4><ul>";
+        for (let p of unqualified) {
+          unqualifiedList += `<li><b>${p.policyNo}</b> – ${p.name} – RM ${p.anp.toLocaleString(undefined, { minimumFractionDigits: 2 })} – ${p.monthsPaid} months paid – Status: ${statusLabels[p.status] || p.status}</li>`;
+        }
+        unqualifiedList += "</ul>";
+      }
+
+      document.getElementById("result").innerHTML = `
+        <p><b>Total Persistency ANP:</b> RM ${totalANP.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+        <p><b>Persisted ANP (≥ ${threshold} months):</b> RM ${persistedANP.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+        <p><b>Persistency:</b> ${roundedPersistency}%</p>
+        ${suggestion || "<p>✅ Persistency is 85% or above.</p>"}
+        ${unqualifiedList}
+      `;
+    }
+
+    function downloadPDF() {
+      const content = document.getElementById("pdfContent");
+      const result = document.getElementById("result");
+
+      if (!result.innerText.trim()) {
+        alert("No result to download. Please run a calculation first.");
+        return;
+      }
+
+      const title = document.getElementById("pdfTitle");
+      title.style.display = "block";
+
+      const opt = {
+        margin: 0.5,
+        filename: 'persistency_report.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+
+      html2pdf().set(opt).from(content).save().then(() => {
+        title.style.display = "none";
+      });
+    }
+  </script>
+</body>
+</html>
