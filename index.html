@@ -123,13 +123,7 @@
       <option value="12">12-Month Persistency</option>
     </select>
 
-    <textarea id="dataInput" rows="10" placeholder="Paste policy data here..."></textarea>
-    <button onclick="calculate()">Calculate</button>
-
-    <div id="result"></div>
-    <div class="pdfgen"><button onclick="downloadPDF()">📄 Download Report as PDF</button></div>
-    
-    <details>
+        <details>
       <summary>📘 Show Guide</summary>
       <div class="guide">
         <div class="guide-step"><strong>Step 1:</strong> Open the Manulife report (PDF or scanned text).</div>
@@ -157,6 +151,13 @@ Notes:
       </div>
     </details>
   </div>
+
+    <textarea id="dataInput" rows="10" placeholder="Paste policy data here..."></textarea>
+    <button onclick="calculate()">Calculate</button>
+
+    <div id="result"></div>
+    <div class="pdfgen"><button onclick="downloadPDF()">📄 Download Report as PDF</button></div>
+    
 
   <script>
     function copyPrompt() {
