@@ -101,6 +101,15 @@
       text-align: left;
       color: #4e342e;
     }
+
+      .pdfgen {
+      max-width: 600px;
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin: auto;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -118,7 +127,7 @@
     <button onclick="calculate()">Calculate</button>
 
     <div id="result"></div>
-    <button onclick="downloadPDF()">📄 Download Report as PDF</button>
+    <div class="pdfgen"><button onclick="downloadPDF()">📄 Download Report as PDF</button></div>
     
     <details>
       <summary>📘 Show Guide</summary>
