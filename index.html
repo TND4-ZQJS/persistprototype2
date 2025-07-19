@@ -247,22 +247,25 @@ Notes:
     }
 
     function downloadPDF() {
-      const element = document.getElementById("result");
-      if (!element.innerText.trim()) {
-        alert("No result to download. Please run a calculation first.");
-        return;
-      }
+  const element = document.getElementById("result");
+  if (!element.innerText.trim()) {
+    alert("No result to download. Please run a calculation first.");
+    return;
+  }
 
-      const opt = {
-        margin: 0.5,
-        filename: `persistency-report-${new Date().toISOString().slice(0, 10)}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-      };
+  const opt = {
+    margin: 0.5,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+  };
 
-      html2pdf().set(opt).from(element).save();
-    }
+  html2pdf().set(opt).from(element).toPdf().get('pdf').then(function (pdf) {
+    const blob = pdf.output('blob');
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  });
+}
   </script>
 </body>
 </html>
